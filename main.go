@@ -1,16 +1,18 @@
 package main
 
 import (
-	"awswaf/internal/aws"
-	"awswaf/internal/aws/captcha"
 	"fmt"
-	http "github.com/bogdanfinn/fhttp"
-	tlsclient "github.com/bogdanfinn/tls-client"
-	"github.com/bogdanfinn/tls-client/profiles"
 	"io"
 	"log"
 	"net/url"
 	"time"
+
+	"github.com/cecobask/awswaf/pkg/aws"
+	"github.com/cecobask/awswaf/pkg/aws/captcha"
+
+	http "github.com/bogdanfinn/fhttp"
+	tlsclient "github.com/bogdanfinn/tls-client"
+	"github.com/bogdanfinn/tls-client/profiles"
 )
 
 func solveHuggingFace() {
@@ -23,12 +25,12 @@ func solveHuggingFace() {
 	if err != nil {
 		panic(err)
 	}
-	
+
 	req, err := http.NewRequest(http.MethodGet, "https://huggingface.com/join", nil)
 	if err != nil {
 		panic(err)
 	}
-	
+
 	req.Header = http.Header{
 		"upgrade-insecure-requests": {"1"},
 		"user-agent":                {"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"},
@@ -45,20 +47,20 @@ func solveHuggingFace() {
 		"priority":                  {"u=0, i"},
 		http.HeaderOrderKey:         {"upgrade-insecure-requests", "user-agent", "accept", "sec-ch-ua", "sec-ch-ua-mobile", "sec-ch-ua-platform", "sec-fetch-site", "sec-fetch-mode", "sec-fetch-user", "sec-fetch-dest", "accept-encoding", "accept-language", "priority"},
 	}
-	
+
 	resp, err := client.Do(req)
 	if err != nil {
 		panic(err)
 	}
 	defer resp.Body.Close()
-	
+
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		panic(err)
 	}
-	
+
 	html := string(body)
-	
+
 	goku, host, err := aws.Extract(html)
 	if err != nil {
 		panic(err)
@@ -72,14 +74,14 @@ func solveHuggingFace() {
 	if err != nil {
 		panic(err)
 	}
-	
+
 	token, err := waf.Run()
 	if err != nil {
 		panic(err)
 	}
-	
+
 	fmt.Printf("[+] Solved Token %s\n", token[len(token)-100:])
-	
+
 	parsed, _ := url.Parse("https://huggingface.co/")
 	cookie := &http.Cookie{
 		Name:     "aws-waf-token",
@@ -89,12 +91,12 @@ func solveHuggingFace() {
 		HttpOnly: true,
 	}
 	client.SetCookies(parsed, []*http.Cookie{cookie})
-	
+
 	req, err = http.NewRequest(http.MethodGet, "https://huggingface.co/join", nil)
 	if err != nil {
 		panic(err)
 	}
-	
+
 	req.Header = http.Header{
 		"upgrade-insecure-requests": {"1"},
 		"user-agent":                {"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"},
@@ -111,23 +113,23 @@ func solveHuggingFace() {
 		"priority":                  {"u=0, i"},
 		http.HeaderOrderKey:         {"upgrade-insecure-requests", "user-agent", "accept", "sec-ch-ua", "sec-ch-ua-mobile", "sec-ch-ua-platform", "sec-fetch-site", "sec-fetch-mode", "sec-fetch-user", "sec-fetch-dest", "accept-encoding", "accept-language", "priority"},
 	}
-	
+
 	resp, err = client.Do(req)
 	if err != nil {
 		panic(err)
 	}
 	defer resp.Body.Close()
-	
+
 	body, err = io.ReadAll(resp.Body)
 	if err != nil {
 		panic(err)
 	}
-	
+
 	goku, host, err = aws.ExtractCaptcha(string(body))
 	if err != nil {
 		panic(err)
 	}
-	
+
 	wafCaptcha := captcha.NewAwsWafCaptcha(waf, goku, host, token)
 	token2, err := wafCaptcha.Run()
 	cookie = &http.Cookie{
@@ -138,12 +140,12 @@ func solveHuggingFace() {
 		HttpOnly: true,
 	}
 	client.SetCookies(parsed, []*http.Cookie{cookie})
-	
+
 	req, err = http.NewRequest(http.MethodGet, "https://huggingface.co/join", nil)
 	if err != nil {
 		panic(err)
 	}
-	
+
 	req.Header = http.Header{
 		"upgrade-insecure-requests": {"1"},
 		"user-agent":                {"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"},
@@ -160,13 +162,13 @@ func solveHuggingFace() {
 		"priority":                  {"u=0, i"},
 		http.HeaderOrderKey:         {"upgrade-insecure-requests", "user-agent", "accept", "sec-ch-ua", "sec-ch-ua-mobile", "sec-ch-ua-platform", "sec-fetch-site", "sec-fetch-mode", "sec-fetch-user", "sec-fetch-dest", "accept-encoding", "accept-language", "priority"},
 	}
-	
+
 	resp, err = client.Do(req)
 	if err != nil {
 		panic(err)
 	}
 	defer resp.Body.Close()
-	
+
 	body, err = io.ReadAll(resp.Body)
 	if err != nil {
 		panic(err)
@@ -222,26 +224,26 @@ func solveBinance(proxy string) {
 			"user-agent",
 		},
 	}
-	
+
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Println(err)
 		return
 	}
 	defer resp.Body.Close()
-	
+
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Println(err)
 		return
 	}
-	
+
 	gokuProps, host, err := aws.Extract(string(body))
 	if err != nil {
 		log.Println(err)
 		return
 	}
-	
+
 	waf, err := aws.NewAwsWaf(
 		host,
 		"www.binance.com",
@@ -252,17 +254,17 @@ func solveBinance(proxy string) {
 		log.Println(err)
 		return
 	}
-	
+
 	start := time.Now()
-	
+
 	token, err := waf.Run()
 	if err != nil {
 		log.Println(err)
 		return
 	}
-	
+
 	end := time.Now()
-	
+
 	parsed, _ := url.Parse("https://www.binance.com/")
 	cookie := &http.Cookie{
 		Name:     "aws-waf-token",
@@ -272,7 +274,7 @@ func solveBinance(proxy string) {
 		HttpOnly: true,
 	}
 	client.SetCookies(parsed, []*http.Cookie{cookie})
-	
+
 	req, err = http.NewRequest(http.MethodGet, "https://www.binance.com/", nil)
 	if err != nil {
 		log.Println(err)
@@ -293,20 +295,20 @@ func solveBinance(proxy string) {
 		"upgrade-insecure-requests": {"1"},
 		"user-agent":                {"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"},
 	}
-	
+
 	resp, err = client.Do(req)
 	if err != nil {
 		log.Println(err)
 		return
 	}
 	defer resp.Body.Close()
-	
+
 	body, err = io.ReadAll(resp.Body)
 	if err != nil {
 		log.Println(err)
 		return
 	}
-	
+
 	if len(string(body)) > 5000 {
 		fmt.Printf("[+] Solved! %s in %s\n", token[len(token)-100:], end.Sub(start).String())
 	} else {

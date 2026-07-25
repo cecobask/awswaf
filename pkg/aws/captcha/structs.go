@@ -1,6 +1,6 @@
 package captcha
 
-import "awswaf/internal/aws"
+import "github.com/cecobask/awswaf/pkg/aws"
 
 type State struct {
 	Iv      string `json:"iv"`

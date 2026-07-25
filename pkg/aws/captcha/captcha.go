@@ -1,15 +1,16 @@
 package captcha
 
 import (
-	"awswaf/internal/aws"
 	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
-	http "github.com/bogdanfinn/fhttp"
-	tlsclient "github.com/bogdanfinn/tls-client"
 	"log"
 	"time"
+
+	http "github.com/bogdanfinn/fhttp"
+	tlsclient "github.com/bogdanfinn/tls-client"
+	"github.com/cecobask/awswaf/pkg/aws"
 )
 
 type WafCaptcha struct {
@@ -38,7 +39,7 @@ func NewAwsWafCaptcha(
 
 func (c *WafCaptcha) GetCaptcha() (ProblemRes ProblemResponse, err error) {
 	url := fmt.Sprintf("https://%s/problem?kind=visual&domain=%s&locale=en", c.host, c.domain)
-	
+
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		log.Println(err)
@@ -60,21 +61,21 @@ func (c *WafCaptcha) GetCaptcha() (ProblemRes ProblemResponse, err error) {
 		"priority":           {"u=1, i"},
 		http.HeaderOrderKey:  {"sec-ch-ua-platform", "user-agent", "sec-ch-ua", "sec-ch-ua-mobile", "accept", "origin", "sec-fetch-site", "sec-fetch-mode", "sec-fetch-dest", "referer", "accept-encoding", "accept-language", "priority"},
 	}
-	
+
 	resp, err := c.session.Do(req)
 	if err != nil {
 		log.Println(err)
 		return
 	}
 	defer resp.Body.Close()
-	
+
 	err = json.NewDecoder(resp.Body).Decode(&ProblemRes)
 	return
 }
 
 func (c *WafCaptcha) Verify(res ProblemResponse, solution []int, elapsed int) (verifyRes VerifyRes, err error) {
 	url := fmt.Sprintf("https://%s/verify", c.host)
-	
+
 	body := VerifyS{
 		State:          res.State,
 		Key:            res.Key,
@@ -91,7 +92,7 @@ func (c *WafCaptcha) Verify(res ProblemResponse, solution []int, elapsed int) (v
 		log.Println(err)
 		return
 	}
-	
+
 	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(encoded))
 	if err != nil {
 		log.Println(err)
@@ -114,22 +115,22 @@ func (c *WafCaptcha) Verify(res ProblemResponse, solution []int, elapsed int) (v
 		"priority":           {"u=1, i"},
 		http.HeaderOrderKey:  {"content-length", "sec-ch-ua-platform", "user-agent", "sec-ch-ua", "content-type", "sec-ch-ua-mobile", "accept", "origin", "sec-fetch-site", "sec-fetch-mode", "sec-fetch-dest", "referer", "accept-encoding", "accept-language", "priority"},
 	}
-	
+
 	resp, err := c.session.Do(req)
 	if err != nil {
 		log.Println(err)
 		return
 	}
 	defer resp.Body.Close()
-	
+
 	err = json.NewDecoder(resp.Body).Decode(&verifyRes)
-	
+
 	return
 }
 
 func (c *WafCaptcha) VerifyVoucher(voucher string) (verifyRes aws.VerifyRes, err error) {
 	url := fmt.Sprintf("https://%s/voucher", c.hostToken)
-	
+
 	body := VoucherS{
 		CaptchaVoucher: voucher,
 		ExistingToken:  c.existingToken,
@@ -139,7 +140,7 @@ func (c *WafCaptcha) VerifyVoucher(voucher string) (verifyRes aws.VerifyRes, err
 		log.Println(err)
 		return
 	}
-	
+
 	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(encoded))
 	if err != nil {
 		log.Println(err)
@@ -162,16 +163,16 @@ func (c *WafCaptcha) VerifyVoucher(voucher string) (verifyRes aws.VerifyRes, err
 		"priority":           {"u=1, i"},
 		http.HeaderOrderKey:  {"content-length", "sec-ch-ua-platform", "user-agent", "sec-ch-ua", "content-type", "sec-ch-ua-mobile", "accept", "origin", "sec-fetch-site", "sec-fetch-mode", "sec-fetch-dest", "referer", "accept-encoding", "accept-language", "priority"},
 	}
-	
+
 	resp, err := c.session.Do(req)
 	if err != nil {
 		log.Println(err)
 		return
 	}
 	defer resp.Body.Close()
-	
+
 	err = json.NewDecoder(resp.Body).Decode(&verifyRes)
-	
+
 	return
 }
 
@@ -199,7 +200,7 @@ func (c *WafCaptcha) Run() (token string, err error) {
 		return
 	}
 	fmt.Println("[+] Received Voucher", res.CaptchaVoucher[:100])
-	
+
 	tokenRes, err := c.VerifyVoucher(res.CaptchaVoucher)
 	if err != nil {
 		return
