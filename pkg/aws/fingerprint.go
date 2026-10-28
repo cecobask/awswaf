@@ -7,26 +7,9 @@ import (
 	"github.com/google/uuid"
 	"hash/crc32"
 	"math/rand"
-	"os"
 	"strings"
 	"time"
 )
-
-var gpus []GPUInfo
-
-func init() {
-	file, err := os.Open("webgl.json")
-	if err != nil {
-		panic(err)
-	}
-	defer file.Close()
-	
-	decoder := json.NewDecoder(file)
-	err = decoder.Decode(&gpus)
-	if err != nil {
-		panic(err)
-	}
-}
 
 func encodeWithCRC(obj any) ([]byte, []byte, error) {
 	payload, err := json.Marshal(obj)
